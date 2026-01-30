@@ -139,7 +139,7 @@ def main():
     print_banner()
 
     # Parse arguments
-    parser = argparse.ArgumentParser(description='Enhanced DDOS Ripper')
+    parser = argparse.ArgumentParser()
     parser.add_argument('target', help='Target IP or domain')
     parser.add_argument('-p', '--port', type=int, default=80, help='Target port (default: 80)')
     parser.add_argument('-t', '--threads', type=int, default=100, help='Number of threads (default: 100)')
