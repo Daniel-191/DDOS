@@ -1,0 +1,4 @@
+- CLI based
+- multi-threading (default 100 threads)
+- 13 rotating user agents
+- random request delays
